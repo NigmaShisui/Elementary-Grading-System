@@ -9,21 +9,41 @@ def view_students():
 
     print("\nList of Students:")
     for idx, student in enumerate(students, 1):
-        print(f"{idx}. {student['name']} - Grade {student['grade_level']}")
+        print(f"{idx}. {student['name']} - {student['grade_level']}")
 
 #add or append student to the dataabase
 def add_student():
     name = input("Enter student name: ").strip()
-    grade_level = input("Enter grade level (e.g., Grade 1, Grade 2, etc.): ").strip()
+    grade_level = input("Enter grade level (e.g., Grade 1 to Grade 6.): ").strip()
+
+    # Capitalize the first letter of each word
+    formatted_name = name.title()
+    formatted_grade_level = grade_level.title()
+
+    # Validate grade level
+    if formatted_grade_level.startswith("Grade"):
+        try:
+            grade_number = int(formatted_grade_level.split()[1])
+            if grade_number < 1 or grade_number > 6:
+                print("This is for elementary grade use only.")
+                return
+        except ValueError:
+            print("Invalid grade level format. Please use 'Grade 1', 'to' 'Grade 6.")
+            return
+    else:
+        print("Invalid grade level format. Please use 'Grade 1', 'to' 'Grade 6'.")
+        return
+
     student = {
-        "name": name,
-        "grade_level": grade_level,
+        "name": formatted_name,  # Save the formatted name
+        "grade_level": formatted_grade_level,  # Save the formatted grade level
         "grades": {}
     }
     students = database.fetch_all('students')
     students.append(student)
     database.save_all('students', students)
-    print(f"Student {name} added successfully!")
+    print(f"Student {formatted_name} added successfully!")
+
 
 #remove student from database
 def remove_student():
@@ -81,20 +101,47 @@ def update_student():
     if not students:
         print("No students to update.")
         return
-    
+
     view_students()
-    student_id = int(input("Enter student ID to update: ")) - 1
+    try:
+        student_id = int(input("Enter student ID to update: ")) - 1
+    except ValueError:
+        print("Invalid input. Please enter a numeric ID.")
+        return
+
     if 0 <= student_id < len(students):
         student = students[student_id]
         print(f"Updating student {student['name']}")
+
+        # Accept user input and capitalize the first letter of each word
         name = input(f"Enter new name (current: {student['name']}): ").strip()
+        formatted_name = name.title()  # Capitalize first letters
+
         grade_level = input(f"Enter new grade level (current: {student['grade_level']}): ").strip()
-        student['name'] = name
-        student['grade_level'] = grade_level
+        formatted_grade_level = grade_level.title()  # Capitalize first letters
+
+        # Validate grade level
+        if formatted_grade_level.startswith("Grade"):
+            try:
+                grade_number = int(formatted_grade_level.split()[1])
+                if grade_number < 1 or grade_number > 6:
+                    print("This is for elementary grade use only.")
+                    return
+            except ValueError:
+                print("Invalid grade level format. Please use 'Grade 1', 'Grade 2', etc.")
+                return
+        else:
+            print("Invalid grade level format. Please use 'Grade 1', 'Grade 2', etc.")
+            return
+
+        # Update the student's information in the database
+        student['name'] = formatted_name
+        student['grade_level'] = formatted_grade_level
         database.save_all('students', students)
-        print(f"Student {name} updated successfully!")
+        print(f"Student {formatted_name} updated successfully!")
     else:
         print("Invalid student ID.")
+
 
 def manage_students_menu():
     while True:

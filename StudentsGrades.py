@@ -27,45 +27,81 @@ def compute_final_grade(written_works, performance_tasks, quarterly_assessment):
     return round(final_grade, 2)
 
 # Core functionalities
-def input_student_grades(students=None):
+def input_grades_for_student(student):
+    """Input grades for a single student."""
+    print(f"\nEntering grades for {student['name']} (Grade {student['grade_level']}):")
+
+    grades = {}
+    for subject in ["English", "Science", "Math"]:
+        print(f"\n{subject}:")
+        written = input_grade_component("Written Works")
+        performance = input_grade_component("Performance Tasks")
+        quarterly = input_grade_component("Quarterly Assessment")
+
+        final_grade = compute_final_grade(written, performance, quarterly)
+        grades[subject] = {
+            "Written Works": written,
+            "Performance Tasks": performance,
+            "Quarterly Assessment": quarterly,
+            "Final Grade": final_grade
+        }
+
+    student["grades"] = grades
+    print(f"\nGrades successfully updated for {student['name']}!")
+
+def input_student_grades():
     """Input grades for students."""
-    if not students:
+    all_students = database.fetch_all("students")
+
+    if not all_students:
         print("No students found. Please add students first.")
         return
 
     print("\n=== Input Grades ===")
-    for student in students:
-        print(f"\nEntering grades for {student['name']} (Grade {student['grade_level']}):")
-        grades = {}
+    print("1. Input grades for a single student")
+    print("2. Input grades for all students")
 
-        for subject in ["English", "Science", "Math"]:
-            print(f"\n{subject}:")
-            written = input_grade_component("Written Works")
-            performance = input_grade_component("Performance Tasks")
-            quarterly = input_grade_component("Quarterly Assessment")
+    choice = input("Select an option: ").strip()
 
-            final_grade = compute_final_grade(written, performance, quarterly)
-            grades[subject] = {
-                "Written Works": written,
-                "Performance Tasks": performance,
-                "Quarterly Assessment": quarterly,
-                "Final Grade": final_grade
-            }
+    if choice == '1':
+        for idx, student in enumerate(all_students, 1):
+            print(f"{idx}. {student['name']} (Grade {student['grade_level']})")
 
-        student['grades'] = grades
-    database.save_all("students", students)
-    print("\nGrades successfully updated!")
+        try:
+            student_id = int(input("Enter the student ID to input grades: ")) - 1
+            if not (0 <= student_id < len(all_students)):
+                print("Invalid student ID.")
+                return
+        except ValueError:
+            print("Invalid input. Please enter a numeric value.")
+            return
 
-def generate_reports(students=None):
+        student = all_students[student_id]
+        input_grades_for_student(student)
+
+    elif choice == '2':
+        for student in all_students:
+            input_grades_for_student(student)
+
+    else:
+        print("Invalid choice. Returning to menu.")
+        return
+
+    # Save updated grades to the database
+    database.save_all("students", all_students)
+
+def generate_reports():
     """Generate student grade reports including averages and rankings."""
-    if not students:
+    all_students = database.fetch_all("students")
+
+    if not all_students:
         print("No students found. Please add students first.")
         return
 
     print("\n=== Generating Reports ===")
     rankings = []
 
-    for student in students:
+    for student in all_students:
         grades = student.get('grades', {})
         total_grades = 0
         num_subjects = len(grades)
@@ -105,38 +141,6 @@ def generate_reports(students=None):
     for idx, entry in enumerate(rankings, 1):
         print(f"{idx}. {entry['name']} - Average: {entry['average']}% - {entry['rank']}")
 
-# Menus
-def choose_students():
-    """Allow the teacher to choose specific students or the entire list."""
-    students = database.fetch_all("students")
-    if not students:
-        print("No students found. Please add students first.")
-        return None
-
-    print("\n1. Select a specific student")
-    print("2. Proceed with the entire list")
-    choice = input("Select an option: ").strip()
-
-    if choice == '1':
-        print("\nAvailable students:")
-        for i, student in enumerate(students, 1):
-            print(f"{i}. {student['name']} (Grade {student['grade_level']})")
-        try:
-            selected_index = int(input("Enter the number of the student: ")) - 1
-            if 0 <= selected_index < len(students):
-                return [students[selected_index]]
-            else:
-                print("Invalid selection.")
-                return None
-        except ValueError:
-            print("Invalid input. Returning to the main menu.")
-            return None
-    elif choice == '2':
-        return students
-    else:
-        print("Invalid choice. Returning to the main menu.")
-        return None
-
 def grading_menu():
     """Menu for grading system."""
     while True:
@@ -150,13 +154,9 @@ def grading_menu():
 
         choice = input("Select an option: ").strip()
         if choice == '1':
-            selected_students = choose_students()
-            if selected_students:
-                input_student_grades(selected_students)
+            input_student_grades()
         elif choice == '2':
-            selected_students = choose_students()
-            if selected_students:
-                generate_reports(selected_students)
+            generate_reports()
         elif choice == '3':
             break
         else:
