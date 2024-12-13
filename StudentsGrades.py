@@ -29,7 +29,7 @@ def compute_final_grade(written_works, performance_tasks, quarterly_assessment):
 # Core functionalities
 def input_grades_for_student(student):
     """Input grades for a single student."""
-    print(f"\nEntering grades for {student['name']} (Grade {student['grade_level']}):")
+    print(f"\nEntering grades for {student['name']} ({student['grade_level']}):")
 
     grades = {}
     for subject in ["English", "Science", "Math"]:
